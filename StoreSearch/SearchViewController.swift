@@ -30,16 +30,32 @@ extension SearchViewController: UISearchBarDelegate {
             hasSearched = true
             searchResults = []
             
+            // 1
             let url = iTuneURL(searchText: searchBar.text!)
-            print("URL: '\(url)'")
-            if let data = performStoreRequest(with: url) {
-                searchResults = parse(data: data)
-                
-                searchResults.sort { $0.name.localizedStandardCompare($1.name) == .orderedAscending
+            // 2
+            let session = URLSession.shared
+            // 3
+            let dataTask = session.dataTask(with: url) {data, response, error in
+                // 4
+                if let error = error {
+                    print("Failure! \(error.localizedDescription)")
+                } else if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
+                    if let data = data {
+                        self.searchResults = parse(data: data)
+                        self.searchResults.sorted(by: <)
+                        DispatchQueue.main.async {
+//                            self.isLoading = false
+                            self.tableView.reloadData()
+                        }
+                    }
+                } else {
+                    print("Failure! \(response!)")
                 }
             }
+            // 5
+            dataTask.resume()
         }
-        tableView.reloadData()
+        
     }
     func position(for bar: UIBarPositioning) -> UIBarPosition {
         return .topAttached
@@ -98,16 +114,6 @@ func iTuneURL(searchText: String) -> URL {
     let urlString = String(format: "https://itunes.apple.com/search?term=%@&limit=200", encodedText)
     let url = URL(string: urlString)
     return url!
-}
-
-func performStoreRequest(with url: URL) -> Data? {
-    do {
-        return try Data(contentsOf: url)
-    } catch {
-        print("Download Error: \(error.localizedDescription)")
-        shownetworkError()
-        return nil
-    }
 }
 
 func parse(data: Data) -> [SearchResult] {
