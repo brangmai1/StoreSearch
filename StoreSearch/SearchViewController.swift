@@ -16,10 +16,22 @@ class SearchViewController: UIViewController {
     @IBOutlet weak var tableView: UITableView!
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        var cellNib = UINib(nibName: TableView.CellIndentifiers.searchResultCell, bundle: nil)
+        tableView.register(cellNib, forCellReuseIdentifier: TableView.CellIndentifiers.searchResultCell)
+        
+        cellNib = UINib(nibName: TableView.CellIndentifiers.nothingFoundCell, bundle: nil)
+        tableView.register(cellNib, forCellReuseIdentifier: TableView.CellIndentifiers.nothingFoundCell)
         // Do any additional setup after loading the view.
         tableView.contentInset = UIEdgeInsets(top: 51, left: 0, bottom: 0, right: 0)
-        
     }
+    struct TableView {
+        struct CellIndentifiers {
+            static let searchResultCell = "SearchResultCell"
+            static let nothingFoundCell = "NothingFoundCell"
+        }
+    }
+    
 }
 
 // Mark: Search Bar Delegate
@@ -54,8 +66,7 @@ extension SearchViewController: UISearchBarDelegate {
             }
             // 5
             dataTask.resume()
-        }
-        
+        }        
     }
     func position(for bar: UIBarPositioning) -> UIBarPosition {
         return .topAttached
@@ -75,27 +86,25 @@ extension SearchViewController: UITableViewDelegate, UITableViewDataSource {
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cellIdentifier = "SearchResultCell"
-        var cell = tableView.dequeueReusableCell(withIdentifier: cellIdentifier)
-        if cell == nil {
-            cell = UITableViewCell(style: .subtitle, reuseIdentifier: cellIdentifier)
-        }
+        
         if searchResults.count == 0 {
-            cell?.textLabel!.text = "(Nothing found)"
-            cell?.detailTextLabel!.text = ""
+            return tableView.dequeueReusableCell(withIdentifier: TableView.CellIndentifiers.nothingFoundCell, for: indexPath)
         } else {
+            let cell = tableView.dequeueReusableCell(withIdentifier: TableView.CellIndentifiers.searchResultCell, for: indexPath) as! SearchResultCell
             let searchResult = searchResults[indexPath.row]
-            cell?.textLabel!.text = searchResult.name
-            cell?.detailTextLabel!.text = searchResult.artistName
+            cell.nameLabel.text = searchResult.name
+            cell.artistNameLabel.text = searchResult.artistName
+            return cell
+            
 //            if searchResult.artist.isEmpty {
 //                cell.artistNameLabel.text = "Unknown"
 //            } else {
 //                cell.artistNameLabel.text = String(format: "%@ (%@)", searchResult.artist, searchResult.type)
 //            }
         }
-    
-        return cell!
     }
+    
+    
     func tableView(_ tableView: UITableView, didSelectedRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
     }
