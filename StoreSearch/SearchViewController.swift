@@ -15,6 +15,7 @@ class SearchViewController: UIViewController {
     @IBOutlet weak var searchBar: UISearchBar!
     @IBOutlet weak var tableView: UITableView!
     override func viewDidLoad() {
+        searchBar.becomeFirstResponder()
         super.viewDidLoad()
         
         var cellNib = UINib(nibName: TableView.CellIndentifiers.searchResultCell, bundle: nil)
