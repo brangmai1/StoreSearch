@@ -13,6 +13,13 @@ class SearchViewController: UIViewController {
     var hasSearched = false
     var isLoading = false
     
+    var dataTask: URLSessionDataTask?
+   
+    @IBAction func segmentChanged(_ sender: UISegmentedControl) {
+        performSearch()
+    }
+    
+    @IBOutlet weak var segmentedControl: UISegmentedControl!
     @IBOutlet weak var searchBar: UISearchBar!
     @IBOutlet weak var tableView: UITableView!
     override func viewDidLoad() {
@@ -28,8 +35,11 @@ class SearchViewController: UIViewController {
         cellNib = UINib(nibName: TableView.CellIndentifiers.loadingCell, bundle: nil)
         tableView.register(cellNib, forCellReuseIdentifier: TableView.CellIndentifiers.loadingCell)
         // Do any additional setup after loading the view.
-        tableView.contentInset = UIEdgeInsets(top: 51, left: 0, bottom: 0, right: 0)
+        tableView.contentInset = UIEdgeInsets(top: 91, left: 0, bottom: 0, right: 0)
+        
+        
     }
+    
     struct TableView {
         struct CellIndentifiers {
             static let searchResultCell = "SearchResultCell"
@@ -40,11 +50,19 @@ class SearchViewController: UIViewController {
     
 }
 
+
 // Mark: Search Bar Delegate
 extension SearchViewController: UISearchBarDelegate {
-    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar){
+        performSearch()
+    }
+  
+//    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+    func performSearch() {
         if !searchBar.text!.isEmpty {
             searchBar.resignFirstResponder()
+            dataTask?.cancel()
+            
             isLoading = true
             tableView.reloadData()
             hasSearched = true
@@ -68,20 +86,23 @@ extension SearchViewController: UISearchBarDelegate {
 //                    return
 //                }
 //            }
-            let url = iTuneURL(searchText: searchBar.text!)
+            let url = iTuneURL(searchText: searchBar.text!, category: segmentedControl.selectedSegmentIndex)
             let session = URLSession.shared
             // 3
-            let dataTask = session.dataTask(with: url) {data, response, error in
+            dataTask = session.dataTask(with: url) {data, response, error in // [weak self] is used to avoid memory leaks
                 // 4
-                if let error = error {
+                if let error = error as NSError?, error.code == -999 {
                     print("Failure! \(error.localizedDescription)")
+                    return
                 } else if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
                     if let data = data {
                         self.searchResults = parse(data: data)
                         self.searchResults.sorted(by: <)
                         DispatchQueue.main.async {
                             self.isLoading = false
+//                            self.hasSearched = false
                             self.tableView.reloadData()
+                            shownetworkError()
                         }
                     }
                 } else {
@@ -89,7 +110,7 @@ extension SearchViewController: UISearchBarDelegate {
                 }
             }
             // 5
-            dataTask.resume()
+            dataTask?.resume()
         }        
     }
     func position(for bar: UIBarPositioning) -> UIBarPosition {
@@ -149,9 +170,16 @@ extension SearchViewController: UITableViewDelegate, UITableViewDataSource {
     }
 
 }
-func iTuneURL(searchText: String) -> URL {
+func iTuneURL(searchText: String, category: Int) -> URL {
+    let kind: String
+    switch category {
+    case 1: kind = "musicTrack"
+    case 2: kind = "software"
+    case 3: kind = "ebook"
+    default: kind = ""
+    }
     let encodedText = searchText.addingPercentEncoding(withAllowedCharacters: CharacterSet.urlQueryAllowed)!
-    let urlString = String(format: "https://itunes.apple.com/search?term=%@&limit=50", encodedText)
+    let urlString = "https://itunes.apple.com/search?" + "term=\(encodedText)&limit=200&entity=\(kind)"
     let url = URL(string: urlString)
     return url!
 }
@@ -177,8 +205,8 @@ func shownetworkError() {
 
 // Source from developer.apple.com
 func present(_ viewControllerToPresent: UIViewController,
-animated flag: Bool,
-completion: (() -> Void)? = nil) {
-    
+    animated flag: Bool,
+    completion: (() -> Void)? = nil) {
+        
 }
 
